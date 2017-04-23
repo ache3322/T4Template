@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Product>
+  <Column name="Product_ID" type="int"/>
+  <Column name="Description" type="string"/>
+  <Column name="Unit_Price" type="decimal"/>
+</Product>

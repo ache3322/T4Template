@@ -1,0 +1,173 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Xml" #>
+<#@ output extension=".cs" #>
+<#
+//========================================
+/*
+* FILE : Entity.tt
+* DATE : 2017/04/22
+* DETAILS : T4 Text code for an Entity class.
+*/
+//========================================
+DateTime dateTimeNow = DateTime.UtcNow.Date;
+
+// Find the path of where the xml lives...
+string xmlFile = this.Host.ResolvePath("table_schema.xml");
+
+// Load the xml from an xml file...
+XmlDocument xmlDoc = new XmlDocument();
+xmlDoc.Load(xmlFile);
+XmlNode root = xmlDoc.LastChild;
+
+// Store the nodes and attributes in this Dictionary
+Dictionary<string, string> columnNode = new Dictionary<string, string>();
+string tableName = root.Name;
+
+// For-each node in the root node...
+foreach(XmlNode node in root)
+{
+    string nameAttr = node.Attributes["name"].Value;
+    string typeAttr = node.Attributes["type"].Value;
+    typeAttr = DataTypeConverter(typeAttr);
+
+
+    columnNode[nameAttr] = typeAttr;
+}
+#>
+/*
+* FILE : <#= tableName #>.cs
+* DATE : <#= dateTimeNow.ToString("yyyy/MM/dd") #>
+* DETAILS : Generated code for the <#= tableName #> class.
+*/
+using System;
+
+namespace T4Text
+{
+    public class <#= tableName #>
+    {
+<#
+foreach(string name in columnNode.Keys)
+{
+    string type = columnNode[name];
+#>
+        public <#= type #> <#= name #> { get; set; }
+<#
+}
+#>
+
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        public <#= tableName #>()
+        {
+
+        }
+
+<#
+string methodParams = "";
+int i = 0;
+
+foreach(string name in columnNode.Keys)
+{
+    string type = columnNode[name];
+    
+    methodParams += type + " " + LowerInitial(name);
+
+    if (i < columnNode.Count - 1)
+    {
+        methodParams += ", ";
+    }
+    ++i;
+}
+#>
+        /// <summary>
+        /// Constructor containing <#= columnNode.Count #> arguments
+        /// </summary>
+        public <#= tableName #>(<#= methodParams #>)
+        {
+<#
+// Print out the initialization list
+foreach (string name in columnNode.Keys)
+{
+    string type = columnNode[name];
+    string lowerName = LowerInitial(name);
+
+    string initialVar = name + " = " + lowerName;
+#>
+            this.<#= initialVar #>;
+<#
+}
+#>
+        }
+
+
+        /// <summary>
+        /// Overriding the ToString() method
+        /// </summary>
+        public override string ToString()
+        {
+<#
+// Print out the ToString()
+StringBuilder sb = new StringBuilder();
+i = 0;
+foreach (string name in columnNode.Keys)
+{
+    sb.Append(name);
+
+    if (i < columnNode.Count - 1)
+    {
+        sb.Append(" + ");
+        sb.Append("\" \"");
+        sb.Append(" + ");
+    }
+
+    ++i;
+}
+#>
+            return <#= sb.ToString() #>;
+        }
+    }
+}
+<#+
+//===----------------------
+//--- AUXILARY METHODS
+//
+/*
+* METHOD : LowerInitial
+* DETAILS : Takes in a string and lowercases all the letters.
+* PARAM : name - string - The string to turn into lowercase
+* RETURN : string - The lowercased string.
+*/
+private string LowerInitial(string name)
+{
+    return name.ToLower();
+}
+
+/*
+* METHOD : DataTypeConverter
+* DETAILS : Takes C# datatype and converts when appropriate.
+* PARAM : type - string - The type to be converted.
+* RETURN : string - The C# defined datetype.
+*/
+private string DataTypeConverter(string type)
+{
+    string lowerType = type.ToLower();
+
+    switch(lowerType)
+    {
+    case "datetime":
+        lowerType = "DateTime";
+        break;
+    default:
+        break;
+    }
+
+    return lowerType;
+}
+#>

@@ -1,0 +1,179 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Xml" #>
+<#@ output extension=".cs" #>
+<#
+//========================================
+/*
+* FILE : Repo.tt
+* DATE : 2017/04/22
+* DETAILS : T4 Text code for Repo class.
+*/
+//========================================
+DateTime dateTimeNow = DateTime.UtcNow.Date;
+
+// Find the path of where the xml lives...
+string xmlFile = this.Host.ResolvePath("table_schema.xml");
+
+// Load the xml from an xml file...
+XmlDocument xmlDoc = new XmlDocument();
+xmlDoc.Load(xmlFile);
+XmlNode root = xmlDoc.LastChild;
+
+// Store the nodes and attributes in this Dictionary
+Dictionary<string, string> columnNode = new Dictionary<string, string>();
+
+// For-each node in the root node...
+foreach(XmlNode node in root)
+{
+    string nameAttr = node.Attributes["name"].Value;
+    string typeAttr = node.Attributes["type"].Value;
+    typeAttr = DataTypeConverter(typeAttr);
+
+    columnNode[nameAttr] = typeAttr;
+}
+
+string entityName = root.Name;
+string className = entityName + "s";
+string listName = className + "List";
+string id = columnNode.Keys.First();
+#>
+/*
+* FILE : <#= className #>.cs
+* DATE : <#= dateTimeNow.ToString("yyyy/MM/dd") #>
+* DETAILS : Generated code for the <#= className #> class.
+*/
+using System;
+using System.Collections.Generic;
+
+namespace T4Text
+{
+    public class <#= className #>
+    {
+        private List<<#= entityName #>> <#= listName #> = new List<<#= entityName #>>();
+
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        public <#= className #>()
+        {
+
+        }
+
+        /// <summary>
+        /// Get all the <#= entityName #>s
+        /// </summary>
+        public List<<#= entityName #>> GetAll()
+        {
+            return <#= listName #>;
+        }
+
+        /// <summary>
+        /// Add <#= entityName #> to repo
+        /// </summary>
+        public void Add(<#= entityName #> p)
+        {
+            <#= listName #>.Add(p);
+        }
+
+        /// <summary>
+        /// Delete <#= entityName #> from repo
+        /// </summary>
+        public void Delete(<#= columnNode["Product_ID"] #> <#= LowerInitial(id) #>)
+        {
+            foreach (<#= entityName #> p in <#= listName #>)
+            {
+                if (p.<#= id #> == <#= LowerInitial(id) #>)
+                {
+                    <#= listName #>.Remove(p);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Find <#= entityName #> from repo
+        /// </summary>
+        public <#= entityName #> Find(<#= columnNode["Product_ID"] #> <#= LowerInitial(id) #>)
+        {
+            <#= entityName #> product = null;
+
+            foreach (<#= entityName #> p in <#= listName #>)
+            {
+                if (p.<#= id #> == <#= LowerInitial(id) #>)
+                {
+                    product = p;
+                    break;
+                }
+            }
+
+            return product;
+        }
+
+        /// <summary>
+        /// Update <#= entityName #> in repo
+        /// </summary>
+        public void Update(<#= columnNode["Product_ID"] #> <#= LowerInitial(id) #>, <#= entityName #> product)
+        {
+            foreach (<#= entityName #> p in <#= listName #>)
+            {
+                if (p.<#= id #> == <#= LowerInitial(id) #>)
+                {
+<#
+foreach (string name in columnNode.Keys)
+{
+#>
+                    p.<#= name #> = product.<#= name #>;
+<#
+}
+#>
+                    break;
+                }
+            }
+        }
+    }
+}
+
+
+<#+
+//===----------------------
+//--- AUXILARY METHODS
+//
+/*
+* METHOD : LowerInitial
+* DETAILS : Takes in a string and lowercases all the letters.
+* PARAM : name - string - The string to turn into lowercase
+* RETURN : string - The lowercased string.
+*/
+private string LowerInitial(string name)
+{
+    return name.ToLower();
+}
+
+/*
+* METHOD : DataTypeConverter
+* DETAILS : Takes C# datatype and converts when appropriate.
+* PARAM : type - string - The type to be converted.
+* RETURN : string - The C# defined datetype.
+*/
+private string DataTypeConverter(string type)
+{
+    string lowerType = type.ToLower();
+
+    switch(lowerType)
+    {
+    case "datetime":
+        lowerType = "DateTime";
+        break;
+    default:
+        break;
+    }
+
+    return lowerType;
+}
+#>

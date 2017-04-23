@@ -1,0 +1,413 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Xml" #>
+<#@ output extension=".cs" #>
+<#
+//========================================
+/*
+* FILE : DAL.tt
+* DATE : 2017/04/22
+* PROGRAMMER : Austin Che, Dong Qian
+* DETAILS : T4 Text code for DAL class.
+*/
+//========================================
+DateTime dateTimeNow = DateTime.UtcNow.Date;
+
+// Find the path of where the xml lives...
+string xmlFile = this.Host.ResolvePath("table_schema.xml");
+
+// Load the xml from an xml file...
+XmlDocument xmlDoc = new XmlDocument();
+xmlDoc.Load(xmlFile);
+XmlNode root = xmlDoc.LastChild;
+
+// Store the nodes and attributes in this Dictionary
+Dictionary<string, string> columnNode = new Dictionary<string, string>();
+
+// For-each node in the root node...
+foreach(XmlNode node in root)
+{
+    string nameAttr = node.Attributes["name"].Value;
+    string typeAttr = node.Attributes["type"].Value;
+    typeAttr = DataTypeConverter(typeAttr);
+
+    columnNode[nameAttr] = typeAttr;
+}
+
+string entityName = root.Name;
+string repoName = entityName + "s";
+string id = columnNode.Keys.First();
+#>
+/*
+* FILE : DAL.cs
+* DATE : <#= dateTimeNow.ToString("yyyy/MM/dd") #>
+* DETAILS : Generated code for the DAL class.
+*/
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+
+namespace T4Text
+{
+    public class DAL
+    {
+        public string Connection { get; set; }
+
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        public DAL()
+        {
+        }
+
+        /// <summary>
+        /// Constructor takes in a connection string.
+        /// </summary>
+        public DAL(string conn)
+        {
+            Connection = conn;
+        }
+
+        /// <summary>
+        /// Get all the rows and columns from the database.
+        /// </summary>
+        public Products GetAll()
+        {
+            <#= repoName #> products = new <#= repoName #>();
+
+            SqlConnection conn = new SqlConnection(Connection);
+            SqlCommand cmd = new SqlCommand();
+
+            string query = "SELECT * FROM <#= entityName #>";
+
+            cmd.Connection = conn;
+            cmd.CommandText = query;
+
+            try
+            {
+                conn.Open();
+
+                SqlDataReader dr = cmd.ExecuteReader();
+                while (dr.Read())
+                {
+                    <#= entityName #> product = new <#= entityName #>();
+
+<#
+foreach (string name in columnNode.Keys)
+{
+    string type = columnNode[name];
+#>
+                    product.<#= name #> = (<#= type #>)dr["<#= name #>"];
+<#
+}
+#>
+                    products.Add(product);
+                }
+
+                dr.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                conn.Close();
+            }
+
+            return products;
+        }
+
+        /// <summary>
+        /// Find the <#= entityName #> from the database
+        /// </summary>
+        public <#= entityName #> Find(<#= columnNode[id] #> <#= LowerInitial(id) #>)
+        {
+            <#= entityName #> product = new <#= entityName #>();
+
+            SqlConnection conn = new SqlConnection(Connection);
+            SqlCommand cmd = new SqlCommand();
+
+            string find = "SELECT * FROM <#= entityName #> WHERE <#= id #>=" + <#= LowerInitial(id) #>;
+
+            cmd.Connection = conn;
+            cmd.CommandText = find;
+
+            try
+            {
+                conn.Open();
+
+                SqlDataReader dr = cmd.ExecuteReader();
+                while (dr.Read())
+                {
+<#
+foreach (string name in columnNode.Keys)
+{
+    string type = columnNode[name];
+#>
+                    product.<#= name #> = (<#= type #>)dr["<#= name #>"];
+<#
+}
+#>
+                }
+
+                dr.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                conn.Close();
+            }
+
+            return product;
+        }
+
+        /// <summary>
+        /// Adding a new <#= entityName #> to the database
+        /// </summary>
+        public void Add(<#= entityName #> p)
+        {
+            SqlConnection conn = new SqlConnection(Connection);
+            SqlCommand cmd = new SqlCommand();
+
+            string insert = "INSERT INTO <#= entityName #>(<#= GetColumnList(columnNode, 0) #>) VALUES(" +
+                <#= GetValueList(columnNode, 0, "p") #>
+                + ")";
+
+            cmd.Connection = conn;
+            cmd.CommandText = insert;
+
+            try
+            {
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
+        /// <summary>
+        /// Deleting a <#= entityName #> from the database
+        /// </summary>
+        public void Delete(<#= columnNode[id] #> <#= LowerInitial(id) #>)
+        {
+            SqlConnection conn = new SqlConnection(Connection);
+            SqlCommand cmd = new SqlCommand();
+
+            string delete = "DELETE FROM <#= entityName #> WHERE <#= id #>=" + <#= LowerInitial(id) #>;
+
+            cmd.Connection = conn;
+            cmd.CommandText = delete;
+
+            try
+            {
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+
+        /// <summary>
+        /// Update the <#= entityName #> in the database
+        /// </summary>
+        public void Update(<#= columnNode[id] #> <#= LowerInitial(id) #>, <#= entityName #> product)
+        {
+            SqlConnection conn = new SqlConnection(Connection);
+            SqlCommand cmd = new SqlCommand();
+
+            string set_clause = <#= GetSetClause(columnNode, 1, "product") #>;
+
+            string update = "UPDATE <#= entityName #>"
+                + "SET " + set_clause
+                + "WHERE <#= id #>=" + <#= LowerInitial(id) #>;
+
+            cmd.Connection = conn;
+            cmd.CommandText = update;
+
+            try
+            {
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
+    }
+}
+
+<#+
+//===----------------------
+//--- AUXILARY METHODS
+//
+/*
+* METHOD : LowerInitial
+* DETAILS : Takes in a string and lowercases all the letters.
+* PARAM : name - string - The string to turn into lowercase
+* RETURN : string - The lowercased string.
+*/
+private string LowerInitial(string name)
+{
+    return name.ToLower();
+}
+
+/*
+* METHOD : DataTypeConverter
+* DETAILS : Takes C# datatype and converts when appropriate.
+* PARAM : type - string - The type to be converted.
+* RETURN : string - The C# defined datetype.
+*/
+private string DataTypeConverter(string type)
+{
+    string lowerType = type.ToLower();
+
+    switch(lowerType)
+    {
+    case "datetime":
+        lowerType = "DateTime";
+        break;
+    default:
+        break;
+    }
+
+    return lowerType;
+}
+
+/*
+* METHOD : GetColumnList
+* DETAILS : Builds an SQL column list that is comma delimited.
+* PARAM : columnNode - string - The columns
+*       : offset - int - Offset for the Dictionary.
+* RETURN : string - The column list.
+*/
+private string GetColumnList(Dictionary<string, string> columnNode, int offset)
+{
+    string columnList = "";
+    int i = 0;
+
+    foreach (string name in columnNode.Keys)
+    {
+        if (i >= offset)
+        {
+            columnList += name;
+
+            if (i < columnNode.Count - 1)
+            {
+                columnList += ",";
+            }
+        }
+        ++i;
+    }
+
+    return columnList;
+}
+
+/*
+* METHOD : GetValueList
+* DETAILS : Builds an SQL value list that is comma delimited.
+*   This value list is specifically for an SQL VALUES.
+* PARAM : columnNode - string - The columns
+*       : offset - int - Offset for the Dictionary.
+*       : variableName - string - Appends a property name before the columns
+* RETURN : string - The value list.
+*/
+private string GetValueList(Dictionary<string, string> columnNode, int offset, string variableName)
+{
+    string valueList = "";
+    int i = 0;
+
+    foreach (string name in columnNode.Keys)
+    {
+        string type = columnNode[name];
+
+        if (i >= offset)
+        {
+            if (type != "string")
+            {
+                valueList += variableName + "."  + name;
+            }
+            else
+            {
+                valueList += "\"'\" + " + variableName + "."  + name + " + \"'\"";
+            }
+
+            if (i < columnNode.Count - 1)
+            {
+                valueList += " + \",\" + ";
+            }
+        }
+        ++i;
+    }
+       
+    return valueList;
+}
+
+/*
+* METHOD : GetSetClause
+* DETAILS : Builds an SQL SET clause that is comma delimited.
+*   This value list is specifically for an SQL SET.
+* PARAM : columnNode - string - The columns
+*       : offset - int - Offset for the Dictionary.
+*       : variableName - string - Appends a property name before the columns
+* RETURN : string - The set clause.
+*/
+private string GetSetClause(Dictionary<string, string> columnNode, int offset, string variableName)
+{
+    string setClause = "";
+    int i = 0;
+
+    foreach (string name in columnNode.Keys)
+    {
+        string type = columnNode[name];
+
+        if (i >= offset)
+        {
+            if (type != "string")
+            {
+                setClause += "\"" + name + "=\" + ";
+                setClause += variableName + "."  + name;
+            }
+            else
+            {
+                setClause += "\"" + name + "=\" + ";
+                setClause += "\"'\" + " + variableName + "."  + name + " + \"'\"";
+            }
+
+            if (i < columnNode.Count - 1)
+            {
+                setClause += " + \",\" + ";
+            }
+        }
+        ++i;
+    }
+
+    return setClause;
+}
+#>

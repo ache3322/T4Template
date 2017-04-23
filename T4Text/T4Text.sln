@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "T4Text", "T4Text\T4Text.csproj", "{87063D68-66EF-42C0-B274-8B9B66B8BF2A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "T4Test", "T4Test\T4Test.csproj", "{38759EE9-8CAE-4B54-B875-E3FD1DECAB0E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{87063D68-66EF-42C0-B274-8B9B66B8BF2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87063D68-66EF-42C0-B274-8B9B66B8BF2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87063D68-66EF-42C0-B274-8B9B66B8BF2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87063D68-66EF-42C0-B274-8B9B66B8BF2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38759EE9-8CAE-4B54-B875-E3FD1DECAB0E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38759EE9-8CAE-4B54-B875-E3FD1DECAB0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38759EE9-8CAE-4B54-B875-E3FD1DECAB0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38759EE9-8CAE-4B54-B875-E3FD1DECAB0E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
